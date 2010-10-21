@@ -1,0 +1,11 @@
+<GetAttributesResponse xmlns="http://sdb.amazonaws.com/doc/2009-04-15/"> 
+	<GetAttributesResult> 
+	    {% for key in attrs %}
+		    <Attribute><Name>{{key}}</Name><Value>{{attrs[key]}}</Value></Attribute> 
+		{% endfor %}
+	</GetAttributesResult> 
+	<ResponseMetadata> 
+		<RequestId>{{request_id}}</RequestId> 
+		<BoxUsage>0.0000219907</BoxUsage> 
+	</ResponseMetadata> 
+</GetAttributesResponse> 

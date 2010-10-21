@@ -1,0 +1,11 @@
+<ListDomainsResponse xmlns="http://sdb.amazonaws.com/doc/2009-04-15/"> 
+<ListDomainsResult>
+    {% for domain in domain_list %}
+    	<DomainName>{{domain}}</DomainName>
+    {% endfor %}
+ </ListDomainsResult> 
+<ResponseMetadata> 
+	<RequestId>{{request_id}}</RequestId> 
+	<BoxUsage>0.0000219907</BoxUsage> 
+</ResponseMetadata> 
+</ListDomainsResponse>

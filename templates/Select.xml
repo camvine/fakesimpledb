@@ -1,0 +1,21 @@
+<SelectResponse xmlns="http://sdb.amazonaws.com/doc/2009-04-15/"> 
+	<SelectResult>
+	    {% for item in items %} 
+	        <Item>
+	            <Name>{{item.sdbkey}}</Name>
+    	        {% for key in item %}
+		            {% if key != 'sdbkey' %}
+		                <Attribute>
+		                    <Name>{{key}}</Name>
+		                    <Value>{{item[key]}}</Value>
+		                </Attribute> 
+		            {% endif %}
+    		    {% endfor %}
+    		</Item>
+    	{% endfor %}
+	</SelectResult> 
+	<ResponseMetadata> 
+		<RequestId>{{request_id}}</RequestId> 
+		<BoxUsage>0.0000219907</BoxUsage> 
+	</ResponseMetadata> 
+</SelectResponse> 
