@@ -32,6 +32,7 @@
 import cherrypy
 import jinja2
 import os
+import re
 import sqlite3
 import uuid
 
@@ -170,8 +171,9 @@ def get_attributes(DomainName, ItemName):
 def select_items(SelectExpression):
     
     # the domain name is hidden in the expression
-    parts = SelectExpression.split("`")
-    DomainName = parts[1]
+    r = re.compile("""(select|SELECT).*(from|FROM)\s['"`]{0,1}([a-zA-Z_0-9]+)['"`]{0,1}\s.*""")
+    parts = r.match(SelectExpression).groups()
+    DomainName = parts[2]
     
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
