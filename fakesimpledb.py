@@ -120,6 +120,22 @@ def put_attributes(DomainName, ItemName, **kwargs):
     conn.commit()
     c.close()
     
+def batch_put_attributes(DomainName, **kwargs):
+    
+    # here we just slice it up and call put_attributes repeatedly
+    index = 0
+    while 1:
+        if not kwargs.has_key('Item.%d.ItemName' % index):
+            break
+        ItemName = kwargs['Item.%d.ItemName' % index]
+        attributes = {}
+        for key in kwargs:
+            if key.startswith('Item.%d' % index):
+                attributes[key.replace('Item.%d.' % index, '')] = kwargs[key]
+        put_attributes(DomainName, **attributes)
+        index += 1
+    
+
 def get_attributes(DomainName, ItemName):
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
@@ -207,6 +223,9 @@ class SimpleDBServer(object):
         elif Action == 'GetAttributes':
             attibutes = get_attributes(kwargs['DomainName'], kwargs['ItemName'])
             return render_to_string('GetAttributes.xml', {'attrs': attibutes})
+        elif Action == 'BatchPutAttributes':
+            batch_put_attributes(**kwargs)
+            return render_to_string('BatchPutAttributes.xml')            
         elif Action == 'Select':
             items = select_items(kwargs['SelectExpression'])
             return render_to_string('Select.xml', {'items': items})
