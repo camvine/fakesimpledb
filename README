@@ -1,0 +1,7 @@
+Test implementation of simpledb's API that maps on an sqlite database
+per domain. It follows the API specified here:
+
+http://docs.amazonwebservices.com/AmazonSimpleDB/2009-04-15/DeveloperGuide/
+
+Requires jinja2, cherrypy, and sqlite3
+
