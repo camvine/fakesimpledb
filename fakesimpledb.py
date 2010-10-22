@@ -36,8 +36,15 @@ import re
 import sqlite3
 import uuid
 
-DATA_DIR = '/tmp/data'
-TEMPLATE_DIR = 'templates'
+try:
+    DATA_DIR = os.environ['FAKESIMPLEDB_DATA_DIR']
+except KeyError:
+    DATA_DIR = os.path.join(os.getcwd(), 'fakesimpledbdata')
+
+try: 
+    TEMPLATE_DIR = os.environ['FAKESIMPELDB_TEMPLATE_DIR']
+except KeyError:
+    TEMPLATE_DIR = os.path.join(os.getcwd(), 'templates')
 
 ##############################################################################
 ##############################################################################
