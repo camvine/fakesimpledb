@@ -36,12 +36,19 @@ import re
 import sqlite3
 import uuid
 
+
+BIND_ADDR = '0.0.0.0'  # Address to bind() and listen() on
+try:
+    SERVER_PORT = int(os.environ['FAKESIMPLEDB_PORT'])
+except KeyError:
+    SERVER_PORT = 8080
+
 try:
     DATA_DIR = os.environ['FAKESIMPLEDB_DATA_DIR']
 except KeyError:
     DATA_DIR = os.path.join(os.getcwd(), 'fakesimpledbdata')
 
-try: 
+try:
     TEMPLATE_DIR = os.environ['FAKESIMPELDB_TEMPLATE_DIR']
 except KeyError:
     TEMPLATE_DIR = os.path.join(os.getcwd(), 'templates')
@@ -252,5 +259,9 @@ if __name__ == "__main__":
         os.makedirs(DATA_DIR)
     except OSError:
         pass
+
+    # Global configuration
+    cherrypy.config.update({'server.socket_host': BIND_ADDR,
+                            'server.socket_port': LOCAL_WEBSERVER_PORT})
+    # Run server
     cherrypy.quickstart(SimpleDBServer())
-    
