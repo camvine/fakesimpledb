@@ -128,12 +128,17 @@ def delete_domain(DomainName):
     try:
         os.unlink(db_name)
     except OSError:
-        pass
+        pass # no aws error behaviour specified
     
 def list_domains():
     return os.listdir(DATA_DIR)
         
 def delete_attributes(DomainName, ItemName):    
+    
+    if not check_domain_valid(DomainName):
+        raise AWSErrorException(AWSErrorException.NoSuchDomain,
+            "The specified domain does not exist.")
+            
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
     c = conn.cursor()
@@ -200,6 +205,11 @@ def batch_put_attributes(DomainName, **kwargs):
     
 
 def get_attributes(DomainName, ItemName):
+    
+    if not check_domain_valid(DomainName):
+        raise AWSErrorException(AWSErrorException.NoSuchDomain,
+            "The specified domain does not exist.")
+            
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
     
