@@ -9,6 +9,7 @@ A number of caveats:
 
 * Currently doesn't do any limiting properly
 * Assumes that your attribute values will always be consistent per domain
+* Only does minimal error simulation currently
 * Needs a lot of testing...
 
 You should be able to NULL attributes but don't support that yet.
