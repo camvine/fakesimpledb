@@ -1,0 +1,9 @@
+<Response>
+    <Errors>
+        <Error>
+            <Code>{{exception.error_code}}</Code>
+            <Message>{{exception.error_message}}</Message>
+        </Error>
+    </Errors>
+    <RequestID>{{request_id}}</RequestID>
+</Response> 

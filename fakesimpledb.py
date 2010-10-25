@@ -36,6 +36,9 @@ import re
 import sqlite3
 import uuid
 
+# this is to mimic AWS's domain cap
+DOMAIN_CAP = 100
+
 
 BIND_ADDR = '0.0.0.0'  # Address to bind() and listen() on
 try:
@@ -56,6 +59,24 @@ except KeyError:
 ##############################################################################
 ##############################################################################
 
+class AWSErrorException(Exception):
+    
+    InvalidParameterValue = "InvalidParameterValue"
+    MissingParameter = "MissingParameter"
+    NumberDomainsExceeded = "NumberDomainsExceeded"
+    
+    def __init__(self, error_code, error_message):
+        self.error_code = error_code
+        self.error_message = error_message
+    
+    def __unicode__(self):
+        return "AWS Error %s: %s" % (self.error_code, self.error_message)
+    
+
+
+##############################################################################
+##############################################################################
+
 def render_to_string(template_name, params={}):
     
     # stock param
@@ -71,9 +92,26 @@ def render_to_string(template_name, params={}):
 
 
 def create_domain(DomainName):
+    
+    # check the domain meets the restrictions for domain names set in the 
+    # amazon API 
+    # http://docs.amazonwebservices.com/AmazonSimpleDB/latest/DeveloperGuide/    
+    checkre = re.compile('^[a-zA-Z0-9_\-\.]{3,255}$')
+    match = checkre.match(DomainName)
+    if not match:
+        raise AWSErrorException(AWSErrorException.InvalidParameterValue,
+            "Value (%s) for parameter DomainName is invalid." % DomainName)
+    
+    # check we're not using too many domains
+    domains = list_domains()
+    if len(domains) >= DOMAIN_CAP:
+        raise AWSErrorException(AWSErrorException.NumberDomainsExceeded, 
+            "Number of domains limit exceeded.")
+    
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
     conn.commit()
+    
     
 def delete_domain(DomainName):
     db_name = os.path.join(DATA_DIR, DomainName)
@@ -221,34 +259,37 @@ class SimpleDBServer(object):
     
     def index(self, Action, **kwargs):
         
-        if Action == 'CreateDomain':
-            create_domain(kwargs['DomainName'])
-            return render_to_string('CreateDomain.xml')   
-        elif Action == 'DeleteDomain':
-            delete_domain(kwargs['DomainName'])
-            return render_to_string('DeleteDomain.xml')             
-        elif Action == 'ListDomains':
-            domains = list_domains()
-            return render_to_string('ListDomains.xml', {'domain_list': domains})
-        elif Action == 'DeleteAttributes':
-            delete_attributes(kwargs['DomainName'], kwargs['ItemName'])
-            return render_to_string('DeleteAttributes.xml')
-        elif Action == 'PutAttributes':
-            put_attributes(**kwargs)
-            return render_to_string('PutAttributes.xml')
-        elif Action == 'GetAttributes':
-            attibutes = get_attributes(kwargs['DomainName'], kwargs['ItemName'])
-            return render_to_string('GetAttributes.xml', {'attrs': attibutes})
-        elif Action == 'BatchPutAttributes':
-            batch_put_attributes(**kwargs)
-            return render_to_string('BatchPutAttributes.xml')            
-        elif Action == 'Select':
-            items = select_items(kwargs['SelectExpression'])
-            return render_to_string('Select.xml', {'items': items})
-        else:
-            print Action
-            print kwargs
-            return "like, whatever."
+        try:        
+            if Action == 'CreateDomain':
+                create_domain(kwargs['DomainName'])
+                return render_to_string('CreateDomain.xml')   
+            elif Action == 'DeleteDomain':
+                delete_domain(kwargs['DomainName'])
+                return render_to_string('DeleteDomain.xml')             
+            elif Action == 'ListDomains':
+                domains = list_domains()
+                return render_to_string('ListDomains.xml', {'domain_list': domains})
+            elif Action == 'DeleteAttributes':
+                delete_attributes(kwargs['DomainName'], kwargs['ItemName'])
+                return render_to_string('DeleteAttributes.xml')
+            elif Action == 'PutAttributes':
+                put_attributes(**kwargs)
+                return render_to_string('PutAttributes.xml')
+            elif Action == 'GetAttributes':
+                attibutes = get_attributes(kwargs['DomainName'], kwargs['ItemName'])
+                return render_to_string('GetAttributes.xml', {'attrs': attibutes})
+            elif Action == 'BatchPutAttributes':
+                batch_put_attributes(**kwargs)
+                return render_to_string('BatchPutAttributes.xml')            
+            elif Action == 'Select':
+                items = select_items(kwargs['SelectExpression'])
+                return render_to_string('Select.xml', {'items': items})
+            else:
+                print Action
+                print kwargs
+                return "like, whatever."
+        except AWSErrorException, e:
+            return render_to_string('ErrorResponse.xml', {'exception': e})
     index.exposed = True
 
 ##############################################################################
@@ -262,6 +303,6 @@ if __name__ == "__main__":
 
     # Global configuration
     cherrypy.config.update({'server.socket_host': BIND_ADDR,
-                            'server.socket_port': LOCAL_WEBSERVER_PORT})
+                            'server.socket_port': SERVER_PORT})
     # Run server
     cherrypy.quickstart(SimpleDBServer())
