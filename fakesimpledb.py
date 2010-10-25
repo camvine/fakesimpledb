@@ -64,6 +64,7 @@ class AWSErrorException(Exception):
     InvalidParameterValue = "InvalidParameterValue"
     MissingParameter = "MissingParameter"
     NumberDomainsExceeded = "NumberDomainsExceeded"
+    NoSuchDomain = "NoSuchDomain"
     
     def __init__(self, error_code, error_message):
         self.error_code = error_code
@@ -86,6 +87,15 @@ def render_to_string(template_name, params={}):
     template = jinja2.Template(open(filename).read())
     result = template.render(**params)
     return result
+    
+def check_domain_valid(DomainName):
+    db_name = os.path.join(DATA_DIR, DomainName)
+    try:
+        os.stat(db_name)
+    except OSError:
+        return False
+    else:
+        return True
 
 ##############################################################################
 ##############################################################################
@@ -223,17 +233,28 @@ def get_attributes(DomainName, ItemName):
 def select_items(SelectExpression):
     
     # the domain name is hidden in the expression
-    r = re.compile("""(select|SELECT).*(from|FROM)\s['"`]{0,1}([a-zA-Z_0-9]+)['"`]{0,1}\s.*""")
+    r = re.compile("""(select|SELECT).*(from|FROM)\s['"`]{0,1}([a-zA-Z_0-9]+)['"`]{0,1}\s{0,1}.*""")
     parts = r.match(SelectExpression).groups()
+    if not parts:
+        raise AWSErrorException(AWSErrorException.MissingParameter, 
+            "The request must contain the parameter DomainName.")
     DomainName = parts[2]
+    
+    if not check_domain_valid(DomainName):
+        raise AWSErrorException(AWSErrorException.NoSuchDomain,
+            "The specified domain does not exist.")
     
     db_name = os.path.join(DATA_DIR, DomainName)
     conn = sqlite3.connect(db_name)
     c = conn.cursor()
     
     query = SelectExpression.replace(DomainName, 'datatable')
-    c.execute(query)
-    query_results = c.fetchall()
+    try:
+        c.execute(query)
+        query_results = c.fetchall()
+    except sqlite3.OperationalError:
+        # this means the domain was created but no data has been put in
+        return []
     
     # we also need the column names
     c.execute('PRAGMA table_info(datatable)')
